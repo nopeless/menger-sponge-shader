@@ -1,83 +1,95 @@
-import { AmbientLight, Box3, BoxGeometry, DirectionalLight, InstancedMesh, Matrix4, Mesh, MeshNormalMaterial, MeshPhongMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, Vector3 } from "three";
-import { scene, camera, runtime } from "./init.js";
+const canvas = document.querySelector<HTMLCanvasElement>("#glcanvas")!;
+const gl = canvas.getContext("webgl")!;
 
-const material = new MeshPhongMaterial({
-  color: "#fff",
-});
-
-const im = new InstancedMesh(
-  new BoxGeometry(1, 1, 1),
-  material,
-  20 ** 5
-);
-
-function buildSponge(camera: PerspectiveCamera, frustrum: Box3, cutoffFactor: number, im: InstancedMesh, pos: Vector3, level: number, maxLevel: number) {
-  let s3 = 1 / 3 ** level;
-
-  // Frustrum culling
-//   const box = new Box3().setFromCenterAndSize(pos, new Vector3(s3, s3, s3));
-//   if (!frustrum.intersectsBox(box)) {
-//     console.log("culling")
-//     return
-// };
-
-  if (
-    level >= maxLevel
-    // || s3 / camera.position.distanceTo(pos) < cutoffFactor
-  ) {
-    const matrix = new Matrix4();
-
-    matrix.setPosition(pos);
-    matrix.scale(new Vector3(s3, s3, s3));
-
-    im.setMatrixAt(im.count++, matrix);
-
-    return;
-  }
-
-  level++;
-  s3 /= 3;
-
-  for (let x = -1; x <= 1; x++) {
-    for (let y = -1; y <= 1; y++) {
-      for (let z = -1; z <= 1; z++) {
-        if (
-          (x === 0 && y === 0) ||
-          (x === 0 && z === 0) ||
-          (y === 0 && z === 0)
-        ) continue;
-
-        buildSponge(camera, frustrum, cutoffFactor, im, new Vector3(pos.x + s3 * x, pos.y + s3 * y, pos.z + s3 * z), level, maxLevel);
-      }
-    }
-  }
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  gl.viewport(0, 0, canvas.width, canvas.height);
 }
 
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
 
-const buildCube = () => {
-  im.count = 0;
-  
-  const frustrum = new Box3();
+async function loadShaderSource(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Unable to load shader: ${url}`);
+  }
+  return await response.text();
+}
 
-  frustrum.setFromCenterAndSize(camera.position, new Vector3(10, 10, 10));
+function compileShader(gl: WebGLRenderingContext, type: number, source: string) {
+  const shader = gl.createShader(type)!;
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
 
-  buildSponge(camera, frustrum, 0.001, im, new Vector3(), 0, 5);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    const message = gl.getShaderInfoLog(shader);
+    gl.deleteShader(shader);
+    throw new Error(`Shader compile failed: ${message}`);
+  }
+  return shader;
+}
 
-  im.instanceMatrix.needsUpdate = true;
-};
+function createProgram(gl: WebGLRenderingContext, vertexSource: string, fragmentSource: string) {
+  const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexSource);
+  const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+  const program = gl.createProgram();
 
-buildCube();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
 
-// setInterval(() => {
-//     buildCube();
-// }, 1000);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    const message = gl.getProgramInfoLog(program);
+    gl.deleteProgram(program);
+    throw new Error(`Program link failed: ${message}`);
+  }
 
-const light = new DirectionalLight("#fff", 1);
-light.position.set(2, 3, 4);
-light.lookAt(0, 0, 0);
+  return program;
+}
 
-scene.add(light);
+async function main() {
+  const vertexUrl = new URL("./vertex.glsl", import.meta.url);
+  const fragmentUrl = new URL("./fragment.glsl", import.meta.url);
+  const [vertexSource, fragmentSource] = await Promise.all([
+    loadShaderSource(vertexUrl.href),
+    loadShaderSource(fragmentUrl.href),
+  ]);
 
-scene.add(im);
+  const program = createProgram(gl, vertexSource, fragmentSource);
 
-// console.log(scene, camera);
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 1, 0, -1, -1, 0, 1, -1, 0]), gl.STATIC_DRAW);
+
+  const positionLocation = gl.getAttribLocation(program, "aVertexPosition");
+  const timeLocation = gl.getUniformLocation(program, "uTime");
+  const resolutionLocation = gl.getUniformLocation(program, "uResolution");
+
+  function drawScene(time = 0) {
+    time *= 0.001;
+    resizeCanvas();
+
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.useProgram(program);
+    gl.enableVertexAttribArray(positionLocation);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
+
+    gl.uniform1f(timeLocation, time);
+    gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    requestAnimationFrame(drawScene);
+  }
+
+  requestAnimationFrame(drawScene);
+}
+
+main().catch((error) => {
+  console.error(error);
+  alert("Shader initialization failed. See console for details.");
+});
