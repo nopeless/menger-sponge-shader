@@ -1,0 +1,13 @@
+{
+  "name": "menger-sponge-three-js",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "three": "^0.177.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.177.0",
+    "typescript": "^5.8.3"
+  }
+}
