@@ -1,16 +1,14 @@
 import GUI from "./lil-gui.js";
-import { gl, context } from "./init.js";
+import { gl, context, setOverlayText } from "./init.js";
 import scenes from "./scenes/index.js";
 
 const gui = new GUI();
 
 // background load as this is io heavy
 const sceneShaders = Object.fromEntries(
-  ["simple", "plane"].map((name) => [
+  Object.keys(scenes).map((name) => [
     name,
     {
-      fragment: `./scenes/${name}/fragment.glsl`,
-      vertex: `./scenes/${name}/vertex.glsl`,
       name,
     },
   ]),
@@ -19,7 +17,7 @@ const sceneShaders = Object.fromEntries(
 const selectedSceneName = localStorage.getItem("selected") ?? "simple";
 
 const options = {
-  scene: sceneShaders[selectedSceneName],
+  scene: sceneShaders[selectedSceneName] ?? sceneShaders.simple,
 };
 
 let program: WebGLProgram | null = null;
@@ -28,7 +26,23 @@ type Status = "compiling_shaders" | "downloading_shaders" | "linking_program" | 
 
 function changeStatus(status: Status) {
   console.log(`Status: ${status}`);
+  if (status === "ready") {
+    setOverlayText(null);
+    return;
+  }
+  setOverlayText(`${status}`);
 }
+
+let frameCounter = 0;
+const stats = { fps: "" };
+
+const fps = gui.add(stats, "fps");
+
+context.everySecond = (delta) => {
+  stats.fps = (frameCounter / (delta / 1000)).toFixed(1) + " FPS";
+  fps.updateDisplay();
+  frameCounter = 0;
+};
 
 const scenePicker = gui
   .add(options, "scene", sceneShaders)
@@ -43,11 +57,13 @@ const scenePicker = gui
     }
 
     context.frame = null;
+    context.onResize = null;
+
     gl.deleteProgram(program);
 
     changeStatus("downloading_shaders");
-    const vsSource = await fetch(value.vertex).then((res) => res.text());
-    const fsSource = await fetch(value.fragment).then((res) => res.text());
+    const vsSource = (await import(`./scenes/${value.name}/vertex.glsl?raw`)).default;
+    const fsSource = (await import(`./scenes/${value.name}/fragment.glsl?raw`)).default;
 
     changeStatus("compiling_shaders");
     const vs = gl.createShader(gl.VERTEX_SHADER)!;
@@ -87,11 +103,18 @@ const scenePicker = gui
     gl.deleteShader(vs);
     gl.deleteShader(fs);
 
-    const ctx = scene.init(gl, program);
+    let ctx: ReturnType<typeof scene.init>;
+
+    (context.onResize = () => {
+      ctx = scene.init(gl, program!);
+    })();
 
     changeStatus("ready");
 
-    context.frame = (delta) => scene.frame(ctx, delta);
+    context.frame = (delta) => {
+      frameCounter++;
+      scene.frame(ctx, delta);
+    };
     scenePicker.enable();
   });
 
