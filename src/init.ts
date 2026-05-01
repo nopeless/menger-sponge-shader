@@ -109,6 +109,28 @@ const mouseMoveHandler = (e: MouseEvent) => {
 
 window.addEventListener("mousemove", mouseMoveHandler);
 
+const pressedKeys = new Set<string>();
+
+function keyDownHandler(e: KeyboardEvent) {
+  pressedKeys.add(e.key);
+
+  updateWasd();
+}
+
+function keyUpHandler(e: KeyboardEvent) {
+  pressedKeys.delete(e.key);
+
+  updateWasd();
+}
+
+function updateWasd() {
+  context.wasdX = Number(pressedKeys.has("d")) - Number(pressedKeys.has("a"));
+  context.wasdY = Number(pressedKeys.has("s")) - Number(pressedKeys.has("w"));
+}
+
+window.addEventListener("keydown", keyDownHandler);
+window.addEventListener("keyup", keyUpHandler);
+
 let esT = performance.now();
 
 const esH = setInterval(() => {
@@ -121,6 +143,8 @@ import.meta.hot?.dispose(() => {
   context.dispose?.();
   window.removeEventListener("resize", onWindowResize);
   window.removeEventListener("mousemove", mouseMoveHandler);
+  window.removeEventListener("keydown", keyDownHandler);
+  window.removeEventListener("keyup", keyUpHandler);
   cancelAnimationFrame(rafH);
   clearInterval(esH);
 });

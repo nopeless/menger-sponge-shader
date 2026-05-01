@@ -1,14 +1,23 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { context } from "../../init.js";
 
 // create fake camera
 const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 100);
 
+const SIDE = 3 ** 19;
+
 const controls = new OrbitControls(camera, document.documentElement);
-controls.rotateSpeed = 0.5;
-controls.panSpeed = 0.5;
-controls.zoomSpeed = 0.5;
-controls.target = new THREE.Vector3(3, 3, 3);
+controls.rotateSpeed = 0.1;
+controls.panSpeed = 0.1;
+controls.zoomSpeed = 0.3;
+controls.target = new THREE.Vector3(SIDE, SIDE, SIDE);
+controls.keys = {
+  LEFT: "KeyA",
+  UP: "KeyW",
+  RIGHT: "KeyD",
+  BOTTOM: "KeyS",
+};
 controls.update();
 
 export function init(gl: WebGLRenderingContext, program: WebGLProgram) {
@@ -50,8 +59,6 @@ export function init(gl: WebGLRenderingContext, program: WebGLProgram) {
   // Right handed coordinate system
   // Y up Z forward X right
   const u = {
-    angle: gl.getUniformLocation(program, "u_angle")!,
-
     // set up a camera system
     x: gl.getUniformLocation(program, "u_x")!,
     y: gl.getUniformLocation(program, "u_y")!,
@@ -59,8 +66,8 @@ export function init(gl: WebGLRenderingContext, program: WebGLProgram) {
     rotation: gl.getUniformLocation(program, "u_rotation")!,
   };
 
-  camera.position.set(0, 0, 0);
-  camera.lookAt(3, 3, 3);
+  camera.position.set(1.5 * SIDE, 1.5 * SIDE, 1.5 * SIDE);
+  camera.lookAt(SIDE, SIDE, SIDE);
 
   return {
     gl,
@@ -75,14 +82,15 @@ const m = new THREE.Matrix3();
 export function frame(ctx: ReturnType<typeof init>, ts: number) {
   const { gl } = ctx;
 
-  gl.uniform1f(ctx.u.angle, ((2 * ts) / 1000) % (Math.PI * 2));
-
   camera.updateMatrixWorld();
 
   // set camera
   gl.uniform1f(ctx.u.x, camera.position.x);
   gl.uniform1f(ctx.u.y, camera.position.y);
   gl.uniform1f(ctx.u.z, camera.position.z);
+
+  // clamp target
+  controls.target = controls.target.clampScalar(0, SIDE);
 
   m.setFromMatrix4(camera.matrixWorld);
   gl.uniformMatrix3fv(ctx.u.rotation, false, m.elements);
