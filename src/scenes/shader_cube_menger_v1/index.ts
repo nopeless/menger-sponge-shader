@@ -5,6 +5,10 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 100);
 
 const controls = new OrbitControls(camera, document.documentElement);
+controls.rotateSpeed = 0.5;
+controls.panSpeed = 0.5;
+controls.zoomSpeed = 0.5;
+controls.target = new THREE.Vector3(3, 3, 3);
 controls.update();
 
 export function init(gl: WebGLRenderingContext, program: WebGLProgram) {
@@ -55,10 +59,8 @@ export function init(gl: WebGLRenderingContext, program: WebGLProgram) {
     rotation: gl.getUniformLocation(program, "u_rotation")!,
   };
 
-  camera.position.set(-2, 2, 2);
-  camera.updateMatrixWorld();
-  camera.lookAt(0, 0, 0);
-  camera.updateMatrixWorld();
+  camera.position.set(0, 0, 0);
+  camera.lookAt(3, 3, 3);
 
   return {
     gl,

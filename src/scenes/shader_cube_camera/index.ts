@@ -7,17 +7,39 @@ const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 100);
 const controls = new OrbitControls(camera, document.documentElement);
 controls.update();
 
+// Initialize buffer
+const positions: number[] = [];
+
+const rq = Math.sqrt((25 - 11 * Math.sqrt(5)) / (5 - Math.sqrt(5)));
+
+// draw pentagram
+for (let i = 0; i < 5; i++) {
+  const angle = (i * (2 * Math.PI)) / 5 + Math.PI / 2;
+  const offset = Math.PI / 5;
+  positions.push(
+    // point
+    1.5 * Math.cos(angle),
+    1.5 * Math.sin(angle),
+    1.5 * rq * Math.cos(angle - offset),
+    1.5 * rq * Math.sin(angle - offset),
+    1.5 * rq * Math.cos(angle + offset),
+    1.5 * rq * Math.sin(angle + offset),
+    // center
+    1.5 * rq * Math.cos(angle - offset),
+    1.5 * rq * Math.sin(angle - offset),
+    1.5 * rq * Math.cos(angle + offset),
+    1.5 * rq * Math.sin(angle + offset),
+    0,
+    0,
+  );
+}
+
 export function init(gl: WebGLRenderingContext, program: WebGLProgram) {
   // Create buffer
   const positionBuffer = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
-  // Initialize buffer
-  const positions = [-1, -1, 3, -1, -1, 3];
-
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-  // ---
 
   const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
   gl.enableVertexAttribArray(positionAttributeLocation);
@@ -86,5 +108,5 @@ export function frame(ctx: ReturnType<typeof init>, ts: number) {
   gl.uniformMatrix3fv(ctx.u.rotation, false, m.elements);
 
   gl.clear(gl.COLOR_BUFFER_BIT);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.drawArrays(gl.TRIANGLES, 0, positions.length / 2);
 }

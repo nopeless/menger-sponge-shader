@@ -83,15 +83,6 @@ void main() {
 
   rayDir = u_rotation * rayDir;
 
-  vec3 origin = camPos;
-
-  float t = dot(-origin, rayDir) / dot(rayDir, rayDir);
-
-  if (t < 0.0) {
-    outColor = vec4(0.0, 0.0, 0.0, 1.0);
-    return;
-  }
-
   if (drawPlane(
     camPos,
     rayDir,

@@ -1,10 +1,8 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 
 uniform vec2 u_resolution;
 float focalLength = 1000.0;
-
-uniform float u_angle;
 
 uniform float u_x;
 uniform float u_y;
@@ -13,111 +11,150 @@ uniform mat3 u_rotation;
 
 out vec4 outColor;
 
-bool drawPlane(
-  vec3 pos,
-  vec3 dir,
-  vec3 origin,
-  vec3 normal,
-  // half side length
-  float s2,
-  vec3 color
-) {
-  float denom = dot(dir, normal);
+// Colors
+// x: east / west
+const vec4 C_E = vec4(1.0, 0.0, 0.0, 1.0);
+const vec4 C_W = vec4(0.0, 1.0, 1.0, 1.0);
+// y: north / south
+const vec4 C_N = vec4(0.0, 1.0, 0.0, 1.0);
+const vec4 C_S = vec4(1.0, 0.0, 1.0, 1.0);
+// z: top / bottom
+const vec4 C_T = vec4(0.0, 0.0, 1.0, 1.0);
+const vec4 C_B = vec4(1.0, 1.0, 0.0, 1.0);
 
-  if (abs(denom) < 0.0001) return false;
+const int ss = 16;
 
-  float t = dot(origin - pos, normal) / denom;
+// track cell stack
+// 32 / 2 bit store
+// 0: 0-1, 1: 1-2, 2: 2-3
+int x_stack[ss];
+int x_stackPointer = 0;
+int x_current = 0;
 
-  if (t < 0.0) return false;
+int y_stack[ss];
+int y_stackPointer = 0;
+int y_current = 0;
 
-  vec3 point = pos + dir * t;
-  
-  // check cartasian
-  vec3 d = point - origin;
+int z_stack[ss];
+int z_stackPointer = 0;
+int z_current = 0;
 
-  if (abs(d.x) > s2 || abs(d.y) > s2 || abs(d.z) > s2) {
-    return false;
-  }
+void push(inout int stack[ss], inout int stackPointer, out int current, int level) {
+  int shift = (stackPointer & 0xf) << 1;
+  int idx = stackPointer >> 4;
 
-  vec2 uv;
+  stack[idx] |= (level & 3) << shift;
 
-  // heuristics
-  if (abs(normal.x) > 0.5) {
-    uv = d.yz;
-  } else if (abs(normal.y) > 0.5) {
-    uv = d.xz;
-  } else {
-    uv = d.xy;
-  }
-
-  float checker = sin((uv.x + uv.y) * 20.0 + 3.0 * u_angle);
-
-  if (checker > 0.5) {
-    return false;
-  }
-
-  color *= 1.5 - length(d) / (s2 * sqrt(2.0));
-
-  vec3 axis = normalize(vec3(1.0));
-  float cosA = cos(u_angle);
-  float sinA = sin(u_angle);
-
-  vec3 rotated =
-      color * cosA +
-      cross(axis, color) * sinA +
-      axis * dot(axis, color) * (1.0 - cosA);
-
-  outColor = vec4(rotated, 1.0);
-
-  return true;
+  stackPointer++;
+  current = level;
 }
 
-void main() {
-  // Camera vector
-  vec3 camPos = vec3(u_x, u_y, u_z);
-  // Ray direction
-  vec3 rayDir = vec3(
-    (gl_FragCoord.xy - u_resolution.xy * 0.5),
-    -focalLength
-  );
+void pop(inout int stack[ss], inout int stackPointer, out int current) {
+  stackPointer--;
 
-  rayDir = u_rotation * rayDir;
+  // clear removed top element
+  int oldShift = (stackPointer & 0xf) << 1;
+  int oldIdx = stackPointer >> 4;
+  stack[oldIdx] &= ~(3 << oldShift);
 
-  vec3 origin = camPos;
+  // set current to new top element
+  int shift = ((stackPointer - 1) & 0xf) << 1;
+  int idx = (stackPointer - 1) >> 4;
+  current = (stack[idx] >> shift) & 3;
+}
 
-  float t = dot(-origin, rayDir) / dot(rayDir, rayDir);
+void inc(inout int stack[ss], inout int stackPointer, out int current) {
+  stack[stackPointer >> 4] += 1 << (stackPointer & 0xf);
 
-  if (t < 0.0) {
-    outColor = vec4(0.0, 0.0, 0.0, 1.0);
+  current += 1;
+}
+
+bool _drawRay(
+  inout vec3 pos, vec3 dir,
+  //colors
+  vec4 cx, vec4 cy, vec4 cz
+) {
+  float r_x = (3.0 - pos.x) / dir.x;
+  float r_y = (3.0 - pos.y) / dir.y;
+  float r_z = (3.0 - pos.z) / dir.z;
+
+  if (r_x < r_y && r_x < r_z) {
+    if (x_stackPointer == -1) {
+      return true;
+    }
+
+    pos += r_x * dir;
+
+    if (1.0 < pos.y && pos.y < 2.0 && 1.0 < pos.z && pos.z < 2.0) {
+      // entering hole
+      if (x_current == 2) {
+        // leaving entirely
+        pop(x_stack, x_stackPointer, x_current);
+        pop(y_stack, y_stackPointer, y_current);
+        pop(z_stack, z_stackPointer, z_current);
+
+        outColor = vec4(0.45f, 0.91f, 0.32f, 1.0f);
+      } else {
+        // go adjacent
+        inc(x_stack, x_stackPointer, x_current);
+
+        outColor = vec4(0.0, 0.0, 0.0, 1.0);
+      }
+    } else {
+      // push new cell
+      push(x_stack, x_stackPointer, x_current, 0);
+      push(y_stack, y_stackPointer, y_current, int(pos.y));
+      push(z_stack, z_stackPointer, z_current, int(pos.z));
+
+      outColor = cx;
+    }
+  }
+
+  return false;
+}
+
+void drawRay(vec3 pos, vec3 dir) {
+  vec4 cx;
+  if (dir.x > 0.0) {
+    cx = C_E;
+  } else {
+    cx = C_W;
+    dir.x *= -1.0;
+    return;
+  }
+  
+  vec4 cy;
+  if (dir.y > 0.0) {
+    cy = C_N;
+  } else {
+    cy = C_S;
+    dir.y *= -1.0;
     return;
   }
 
-  if (drawPlane(
-    camPos,
-    rayDir,
-    vec3(0.5, 0.0, 0.0),
-    vec3(1.0, 0.0, 0.0),
-    0.5,
-    vec3(1.0, 0.0, 0.0)
-  )) return;
+  vec4 cz;
+  if (dir.z > 0.0) {
+    cz = C_T;
+  } else {
+    cz = C_B;
+    dir.z *= -1.0;
+    return;
+  }
 
-  if (drawPlane(
-    camPos,
-    rayDir,
-    vec3(0.0, 0.5, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    0.5,
-    vec3(0.0, 1.0, 0.0)
-  )) return;
+  for (int i = 0; i < 1; i++) {
+    if (_drawRay(pos, dir, cx, cy, cz)) {
+      break;
+    } 
+  }
+}
 
-  if (drawPlane(
-    camPos,
-    rayDir,
-    vec3(0.0, 0.0, 0.5),
-    vec3(0.0, 0.0, 1.0),
-    0.5,
-    vec3(0.0, 0.0, 1.0)
-  )) return;
+void main() {
+  vec3 camPos = vec3(u_x, u_y, u_z);
+  vec3 rayDir = vec3(
+    gl_FragCoord.xy - u_resolution.xy * 0.5,
+    -focalLength
+  );
 
-  outColor = vec4(0.0, 0.0, 0.0, 1.0);
+  rayDir = normalize(u_rotation * rayDir);
+  drawRay(camPos, rayDir);
 }
