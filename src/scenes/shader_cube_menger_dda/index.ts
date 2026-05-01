@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { context } from "../../init.js";
 
 // create fake camera
 const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 100);
@@ -9,7 +8,7 @@ const SIDE = 3 ** 19;
 
 const controls = new OrbitControls(camera, document.documentElement);
 controls.rotateSpeed = 0.1;
-controls.panSpeed = 0.1;
+controls.panSpeed = 1;
 controls.zoomSpeed = 0.3;
 controls.target = new THREE.Vector3(SIDE, SIDE, SIDE);
 controls.keys = {
