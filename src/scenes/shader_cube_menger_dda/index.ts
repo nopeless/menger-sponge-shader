@@ -81,8 +81,6 @@ const m = new THREE.Matrix3();
 export function frame(ctx: ReturnType<typeof init>, ts: number) {
   const { gl } = ctx;
 
-  camera.updateMatrixWorld();
-
   // set camera
   gl.uniform1f(ctx.u.x, camera.position.x);
   gl.uniform1f(ctx.u.y, camera.position.y);
@@ -90,6 +88,8 @@ export function frame(ctx: ReturnType<typeof init>, ts: number) {
 
   // clamp target
   controls.target = controls.target.clampScalar(0, SIDE);
+
+  camera.updateMatrixWorld();
 
   m.setFromMatrix4(camera.matrixWorld);
   gl.uniformMatrix3fv(ctx.u.rotation, false, m.elements);
