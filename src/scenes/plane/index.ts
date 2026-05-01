@@ -36,7 +36,7 @@ export function init(gl: WebGLRenderingContext, program: WebGLProgram) {
     program,
   };
 }
-export function frame(ctx: ReturnType<typeof init>, delta: number) {
+export function frame(ctx: ReturnType<typeof init>) {
   const { gl, program } = ctx;
 
   // Clear the canvas

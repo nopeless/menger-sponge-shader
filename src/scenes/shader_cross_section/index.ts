@@ -1,3 +1,5 @@
+import { context } from "../../init.js";
+
 export function init(gl: WebGLRenderingContext, program: WebGLProgram) {
   // Create buffer
   const positionBuffer = gl.createBuffer()!;
@@ -31,37 +33,43 @@ export function init(gl: WebGLRenderingContext, program: WebGLProgram) {
   gl.clearColor(0, 0, 0, 0);
 
   const u_resolution = gl.getUniformLocation(program, "u_resolution")!;
+  gl.uniform2f(u_resolution, gl.canvas.width, gl.canvas.height);
 
-  // normalize to power of 3
-  const nw = 3 ** Math.ceil(Math.log2(gl.canvas.width) / Math.log2(3));
-  const nh = 3 ** Math.ceil(Math.log2(gl.canvas.height) / Math.log2(3));
-
-  // hijack
-  gl.canvas.width = nw;
-  gl.canvas.height = nh;
-  gl.viewport(0, 0, nw, nh);
-  gl.uniform2f(u_resolution, nw, nh);
-
-  // gl.uniform2f(u_resolution, gl.canvas.width, gl.canvas.height);
-
-  // const u_lut = gl.getUniformLocation(program, "u_lut")!;
-  // gl.uniform1iv(u_lut, createMengerSpongeLut(5));
-
-  const u_size = gl.getUniformLocation(program, "u_size")!;
-  gl.uniform1i(u_size, 7);
-
-  const u_angle = gl.getUniformLocation(program, "u_angle")!;
+  // https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/coordinate-systems.html
+  const u = {
+    // set up a camera system
+    x: gl.getUniformLocation(program, "u_x")!,
+    y: gl.getUniformLocation(program, "u_y")!,
+    z: gl.getUniformLocation(program, "u_z")!,
+    /** z */
+    roll: gl.getUniformLocation(program, "u_roll")!,
+    /** y */
+    yaw: gl.getUniformLocation(program, "u_yaw")!,
+    /** x */
+    pitch: gl.getUniformLocation(program, "u_pitch")!,
+  };
 
   return {
     gl,
-    u_angle,
+    u,
     program,
   };
 }
 export function frame(ctx: ReturnType<typeof init>, ts: number) {
   const { gl } = ctx;
 
-  gl.uniform1f(ctx.u_angle, ((2 * ts) / 1000) % (Math.PI * 2));
+  // set camera
+  // translation
+  gl.uniform1f(ctx.u.x, 0);
+  gl.uniform1f(ctx.u.y, 5);
+  gl.uniform1f(ctx.u.z, 1);
+
+  // rotation (look center)
+  // + is camera rolling ccwise (background rotate clockwise)
+  gl.uniform1f(ctx.u.roll, 0);
+  // + is camera pan right (background pan left)
+  gl.uniform1f(ctx.u.yaw, 0);
+  gl.uniform1f(ctx.u.pitch, Math.PI * 0.5);
 
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 3);

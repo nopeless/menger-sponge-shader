@@ -1,0 +1,124 @@
+#version 300 es
+precision mediump float;
+
+uniform vec2 u_resolution;
+float focalLength = 1000.0;
+
+uniform float u_x;
+uniform float u_y;
+uniform float u_z;
+
+// Z
+uniform float u_roll;
+// Y
+uniform float u_yaw;
+// X
+uniform float u_pitch;
+
+out vec4 outColor;
+
+bool drawPlane(
+  vec3 pos,
+  vec3 dir,
+  vec3 origin,
+  vec3 normal,
+  // half side length
+  float s2,
+  vec3 color
+) {
+  float denom = dot(dir, normal);
+
+  if (abs(denom) < 0.0001) return false;
+
+  float t = dot(origin - pos, normal) / denom;
+
+  if (t < 0.0) return false;
+
+  vec3 point = pos + dir * t;
+  
+  // check cartasian
+  vec3 d = point - origin;
+  if (abs(d.x) > s2 || abs(d.y) > s2 || abs(d.z) > s2) {
+    return false;
+  }
+
+  outColor = vec4(color, 1.0);
+  return true;
+}
+
+void main() {
+  // Camera vector
+  vec3 camPos = vec3(u_x, u_y, u_z);
+  // Ray direction
+  vec3 rayDir = vec3(
+    (gl_FragCoord.xy - u_resolution.xy * 0.5),
+    -focalLength
+  );
+
+  // Alias variables
+  float sina = sin(u_yaw);
+  float cosa = cos(u_yaw);
+  float sinb = sin(u_pitch);
+  float cosb = cos(u_pitch);
+  float sinc = sin(u_roll);
+  float cosc = cos(u_roll);
+
+  mat3 Rx = mat3(
+    1.0, 0.0, 0.0,
+    0.0, cosb, -sinb,
+    0.0, sinb, cosb
+  );
+
+  mat3 Ry = mat3(
+    cosa, 0.0, sina,
+    0.0, 1.0, 0.0,
+    -sina, 0.0, cosa
+  );
+
+  mat3 Rz = mat3(
+    cosc, -sinc, 0.0,
+    sinc,  cosc, 0.0,
+    0.0,   0.0,  1.0
+  );
+
+  mat3 rotation = Ry * Rx * Rz;
+  rayDir = rotation * rayDir;
+
+  vec3 origin = camPos;
+
+  float t = dot(-origin, rayDir) / dot(rayDir, rayDir);
+
+  if (t < 0.0) {
+    outColor = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
+  }
+
+  if (drawPlane(
+    camPos,
+    rayDir,
+    vec3(0.5, 0.0, 0.0),
+    vec3(1.0, 0.0, 0.0),
+    0.5,
+    vec3(1.0, 0.0, 0.0)
+  )) return;
+
+  if (drawPlane(
+    camPos,
+    rayDir,
+    vec3(0.0, 0.5, 0.0),
+    vec3(0.0, 1.0, 0.0),
+    0.5,
+    vec3(0.0, 1.0, 0.0)
+  )) return;
+
+  if (drawPlane(
+    camPos,
+    rayDir,
+    vec3(0.0, 0.0, 0.5),
+    vec3(0.0, 0.0, 1.0),
+    0.5,
+    vec3(0.0, 0.0, 1.0)
+  )) return;
+
+  outColor = vec4(0.0, 0.0, 0.0, 1.0);
+}

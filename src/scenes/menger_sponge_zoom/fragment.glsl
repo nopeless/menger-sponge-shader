@@ -3,24 +3,29 @@ precision mediump float;
 
 uniform float u_angle;
 uniform vec2 u_resolution;
+uniform vec2 u_center;
+uniform float u_zoom;
 
 out vec4 outColor;
 
 void main() {
-  vec2 uv = gl_FragCoord.xy / u_resolution;
+  vec2 offset_uv = (gl_FragCoord.xy / u_resolution - 0.5) / u_zoom;
+  
+  vec2 uv = offset_uv + u_center;
+
 
   int scale = 1;
-  int maxSize = int(max(u_resolution.x, u_resolution.y));
+  int maxSize = int(max(u_resolution.x, u_resolution.y) * u_zoom);
 
   int maxIter = 0;
-  for (; maxIter < 10; ++maxIter) {
+  for (; maxIter < 100; ++maxIter) {
     if (scale >= maxSize) break;
     scale *= 3;
   }
 
   ivec2 p = ivec2(floor(uv * vec2(scale)));
 
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 100; ++i) {
     if (i >= maxIter) break;
 
     if ((p.x % 3 == 1) && (p.y % 3 == 1)) {
