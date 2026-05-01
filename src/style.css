@@ -1,35 +1,104 @@
-html,
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+:root {
+  --page-bg: #050816;
+  --page-bg-soft: #0d1327;
+  --page-fg: #f3fbff;
+  --page-muted: #9cafc2;
+  --page-line: rgba(255, 255, 255, 0.12);
+  --page-cyan: #79f2ff;
+  --page-lime: #d5ff5a;
+  --page-coral: #ff7a90;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--page-bg);
+}
+
 body {
-  height: 100dvh;
-  width: 100dvw;
   margin: 0;
+  min-height: 100dvh;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--page-cyan) 35%, transparent);
+  color: white;
+}
+
+@layer components {
+  .glass-panel {
+    @apply rounded-[2rem] border border-white/12 bg-white/6 shadow-[0_25px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/6 px-3 py-1 text-[0.72rem] uppercase tracking-[0.28em] text-white/72;
+  }
+
+  .scene-card {
+    @apply rounded-[1.6rem] border border-white/10 bg-black/20 p-5 transition duration-300 hover:-translate-y-1 hover:border-[color:var(--page-cyan)]/45 hover:bg-white/8;
+  }
+}
+
+body[data-page="viewer"] {
   overflow: hidden;
+  background: #02040a;
 }
 
-canvas {
+body[data-page="viewer"] #glcanvas {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 100dvw;
+  height: 100dvh;
 }
 
-#overlay {
+body[data-page="viewer"] #overlay {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
   z-index: 10;
-
-  /* center text */
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.56);
   color: white;
-  font-size: 2rem;
-  font-family: 'Courier New', Courier, monospace;
+  font: 500 2rem/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-#overlay.active {
+body[data-page="viewer"] #overlay.active {
   display: flex;
+}
+
+body[data-page="landing"] {
+  position: relative;
+  background:
+    radial-gradient(circle at 16% 16%, color-mix(in srgb, var(--page-cyan) 20%, transparent), transparent 30%),
+    radial-gradient(circle at 84% 18%, color-mix(in srgb, var(--page-coral) 12%, transparent), transparent 26%),
+    linear-gradient(160deg, #040713 0%, #0a1021 54%, #050816 100%);
+  color: var(--page-fg);
+  font-family: var(--font-display);
+}
+
+body[data-page="landing"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(circle at center, black, transparent 82%);
+  opacity: 0.4;
 }
