@@ -21,6 +21,7 @@ try {
 }
 
 const context = {
+  dispose: null,
   frame: null,
   everySecond: null,
   onResize: null,
@@ -37,6 +38,7 @@ const context = {
   accMouseX: 0,
   accMouseY: 0,
 } as {
+  dispose: null | (() => void);
   frame: null | ((delta: number) => void);
   everySecond: null | ((delta: number) => void);
   onResize: null | (() => void);
@@ -116,6 +118,7 @@ const esH = setInterval(() => {
 }, 1000);
 
 import.meta.hot?.dispose(() => {
+  context.dispose?.();
   window.removeEventListener("resize", onWindowResize);
   window.removeEventListener("mousemove", mouseMoveHandler);
   cancelAnimationFrame(rafH);

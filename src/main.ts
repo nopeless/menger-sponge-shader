@@ -98,10 +98,16 @@ const scenePicker = gui
     }
 
     // delete after linking
-    gl.detachShader(program, vs);
-    gl.detachShader(program, fs);
-    gl.deleteShader(vs);
-    gl.deleteShader(fs);
+    const cleanup = () => {
+      if (program) {
+        gl.detachShader(program, vs);
+        gl.detachShader(program, fs);
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
+      }
+    };
+    context.dispose = cleanup;
+    cleanup();
 
     let ctx: ReturnType<typeof scene.init>;
 
