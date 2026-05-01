@@ -31,12 +31,9 @@
           href="./landing.html"
           class="font-mono text-sm uppercase tracking-[0.35em] text-white/74 transition hover:text-white"
         >
-          menger-sponge-three-js
+          menger-sponge
         </a>
         <nav class="hidden items-center gap-6 text-sm text-white/64 md:flex">
-          <a class="transition hover:text-white" href="#what">What it is</a>
-          <a class="transition hover:text-white" href="#scene-ladder">Scene ladder</a>
-          <a class="transition hover:text-white" href="#runtime">Runtime</a>
           <a
             href="https://github.com/nopeless/menger-sponge-shader"
             class="rounded-full border border-white/15 px-4 py-2 text-white/80 transition hover:border-[color:var(--page-cyan)]/50 hover:text-white"
@@ -364,75 +361,6 @@
               </p>
             </article>
           </div>
-        </section>
-
-        <section id="runtime" class="mt-24 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
-          <div class="glass-panel p-6 sm:p-8">
-            <span class="eyebrow font-mono">Runtime behavior</span>
-            <h2 class="mt-6 text-[clamp(2rem,4vw,3.5rem)] font-bold tracking-[-0.05em] text-white">
-              Small runtime, sharp feedback loop.
-            </h2>
-            <div class="mt-8 space-y-4 text-white/72">
-              <div class="rounded-[1.5rem] border border-white/10 bg-black/22 p-4">
-                <p class="font-mono text-xs uppercase tracking-[0.24em] text-white/45">
-                  Scene persistence
-                </p>
-                <p class="mt-2 leading-7">
-                  The selected scene is stored in localStorage, so the repo reopens where you left
-                  off instead of resetting to square one.
-                </p>
-              </div>
-              <div class="rounded-[1.5rem] border border-white/10 bg-black/22 p-4">
-                <p class="font-mono text-xs uppercase tracking-[0.24em] text-white/45">
-                  Global input state
-                </p>
-                <p class="mt-2 leading-7">
-                  Mouse position, zoom, scroll, and WASD state live in one shared runtime object and
-                  get reused across scenes.
-                </p>
-              </div>
-              <div class="rounded-[1.5rem] border border-white/10 bg-black/22 p-4">
-                <p class="font-mono text-xs uppercase tracking-[0.24em] text-white/45">
-                  FPS readout
-                </p>
-                <p class="mt-2 leading-7">
-                  The `lil-gui` panel updates an FPS field once per second, which keeps performance
-                  visible while you jump between experiments.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <aside class="glass-panel p-6 sm:p-8">
-            <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/45">
-              Use it like this
-            </p>
-            <ol class="mt-6 space-y-4 text-white/78">
-              <li class="rounded-[1.5rem] border border-white/10 bg-black/22 p-4">
-                Start with <span class="font-mono text-[color:var(--page-cyan)]">simple</span> or
-                <span class="font-mono text-[color:var(--page-cyan)]">plane</span> if you want the
-                repo’s foundation.
-              </li>
-              <li class="rounded-[1.5rem] border border-white/10 bg-black/22 p-4">
-                Jump to
-                <span class="font-mono text-[color:var(--page-coral)]">menger_sponge_zoom</span>
-                if you care about the fractal logic before the 3D renderer.
-              </li>
-              <li class="rounded-[1.5rem] border border-white/10 bg-black/22 p-4">
-                Land on
-                <span class="font-mono text-[color:var(--page-lime)]">shader_cube_menger_dda</span>
-                when you want the full payoff: orbit the camera and inspect how the sponge gets
-                carved by empty space.
-              </li>
-            </ol>
-
-            <a
-              href="./index.html"
-              class="mt-8 inline-flex rounded-full border border-[color:var(--page-cyan)]/40 px-5 py-3 font-mono text-sm uppercase tracking-[0.22em] text-[color:var(--page-cyan)] transition hover:bg-[color:var(--page-cyan)]/10"
-            >
-              Enter the lab
-            </a>
-          </aside>
         </section>
       </main>
     </div>
