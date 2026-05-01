@@ -3,12 +3,404 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A raw WebGL2 and GLSL lab that climbs from a single triangle to a DDA-stepped 3D Menger sponge."
+    />
     <title>Menger Sponge Shader Lab</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
-  <body data-page="viewer">
-    <div id="overlay"></div>
-    <canvas id="glcanvas"></canvas>
-    <script type="module" src="./main.ts"></script>
+  <body data-page="landing">
+    <div class="pointer-events-none fixed inset-0 overflow-hidden">
+      <div
+        class="absolute left-[8%] top-24 h-56 w-56 rounded-full bg-[color:var(--page-cyan)]/18 blur-3xl"
+      ></div>
+      <div
+        class="absolute right-[10%] top-40 h-72 w-72 rounded-full bg-[color:var(--page-coral)]/14 blur-3xl"
+      ></div>
+      <div
+        class="absolute bottom-[-4rem] left-1/3 h-80 w-80 rounded-full bg-[color:var(--page-lime)]/10 blur-3xl"
+      ></div>
+    </div>
+
+    <div class="relative isolate">
+      <header
+        class="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 sm:px-8 lg:px-12"
+      >
+        <a
+          href="./landing.html"
+          class="font-mono text-sm uppercase tracking-[0.35em] text-white/74 transition hover:text-white"
+        >
+          menger-sponge
+        </a>
+        <nav class="hidden items-center gap-6 text-sm text-white/64 md:flex">
+          <a
+            href="https://github.com/nopeless/menger-sponge-shader"
+            class="rounded-full border border-white/15 px-4 py-2 text-white/80 transition hover:border-[color:var(--page-cyan)]/50 hover:text-white"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub repository
+          </a>
+          <a
+            href="./demo.html"
+            class="rounded-full border border-white/15 bg-white/8 px-4 py-2 text-white transition hover:border-[color:var(--page-cyan)]/50 hover:bg-white/12"
+          >
+            Open viewer
+          </a>
+        </nav>
+      </header>
+
+      <main class="mx-auto max-w-7xl px-6 pb-24 pt-4 sm:px-8 lg:px-12 lg:pb-32">
+        <section
+          class="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-center"
+        >
+          <div>
+            <span class="eyebrow font-mono">
+              <span
+                class="h-2 w-2 rounded-full bg-[color:var(--page-lime)] shadow-[0_0_20px_var(--page-lime)]"
+              ></span>
+              WebGL2 + GLSL + Three.js where it actually helps
+            </span>
+            <h1
+              class="mt-6 max-w-5xl text-[clamp(3.2rem,8vw,6.5rem)] font-bold leading-[0.92] tracking-[-0.05em] text-white"
+            >
+              Building a Menger sponge shader lab, not just another 3D demo.
+            </h1>
+            <p class="mt-6 max-w-3xl text-lg leading-8 text-white/72 sm:text-xl">
+              This repository is a progression. It starts with a raw triangle, moves through
+              fullscreen shader experiments, turns a Menger-style fractal into a zoomable 2D study,
+              then lands on a 3D DDA renderer that skips empty space instead of brute forcing
+              geometry.
+            </p>
+
+            <div class="mt-8 flex flex-wrap gap-4">
+              <a
+                href="./demo.html"
+                class="rounded-full bg-[color:var(--page-lime)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-950 transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(213,255,90,0.25)]"
+              >
+                🚀 Launch the viewer
+              </a>
+              <a
+                href="#scene-ladder"
+                class="rounded-full border border-white/15 px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white/84 transition hover:border-[color:var(--page-cyan)]/50 hover:bg-white/6"
+              >
+                See the scene ladder
+              </a>
+            </div>
+
+            <dl class="mt-10 grid gap-4 sm:grid-cols-3">
+              <div class="glass-panel p-5">
+                <dt class="font-mono text-xs uppercase tracking-[0.28em] text-white/45">Scenes</dt>
+                <dd class="mt-3 text-4xl font-bold tracking-[-0.05em] text-white">9</dd>
+                <p class="mt-2 text-sm leading-6 text-white/64">
+                  From a smoke-test triangle to the final DDA sponge renderer.
+                </p>
+              </div>
+              <div class="glass-panel p-5">
+                <dt class="font-mono text-xs uppercase tracking-[0.28em] text-white/45">
+                  Fractal scale
+                </dt>
+                <dd class="mt-3 text-4xl font-bold tracking-[-0.05em] text-white">3^19</dd>
+                <p class="mt-2 text-sm leading-6 text-white/64">
+                  The final shader treats the world as a giant recursive cube, not a mesh.
+                </p>
+              </div>
+              <div class="glass-panel p-5">
+                <dt class="font-mono text-xs uppercase tracking-[0.28em] text-white/45">
+                  Traversal budget
+                </dt>
+                <dd class="mt-3 text-4xl font-bold tracking-[-0.05em] text-white">256</dd>
+                <p class="mt-2 text-sm leading-6 text-white/64">
+                  Max ray steps in the DDA pass, with empty-space skipping doing the heavy lifting.
+                </p>
+              </div>
+            </dl>
+          </div>
+
+          <div class="glass-panel overflow-hidden p-6 sm:p-8">
+            <div class="flex items-center justify-between">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/45">
+                Runtime shape
+              </p>
+              <span
+                class="rounded-full border border-white/12 px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.22em] text-[color:var(--page-cyan)]"
+              >
+                shader switching live
+              </span>
+            </div>
+
+            <div class="mt-6 space-y-4">
+              <div class="rounded-[1.5rem] border border-white/10 bg-black/26 p-4">
+                <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">Pipeline</p>
+                <p class="mt-3 text-base leading-7 text-white/82">
+                  <span class="font-mono text-[color:var(--page-lime)]">main.ts</span> dynamically
+                  imports a scene’s <span class="font-mono">vertex.glsl</span> and
+                  <span class="font-mono">fragment.glsl</span>, compiles them, links the program,
+                  then hands frame control to that scene module.
+                </p>
+              </div>
+
+              <div class="rounded-[1.5rem] border border-white/10 bg-black/26 p-4">
+                <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">
+                  Status overlay
+                </p>
+                <div
+                  class="mt-3 flex flex-wrap gap-2 font-mono text-xs uppercase tracking-[0.18em] text-white/72"
+                >
+                  <span class="rounded-full border border-white/12 px-3 py-2"
+                    >downloading_shaders</span
+                  >
+                  <span class="rounded-full border border-white/12 px-3 py-2"
+                    >compiling_shaders</span
+                  >
+                  <span class="rounded-full border border-white/12 px-3 py-2">linking_program</span>
+                </div>
+              </div>
+
+              <div class="rounded-[1.5rem] border border-white/10 bg-black/26 p-4">
+                <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">
+                  Interaction model
+                </p>
+                <p class="mt-3 text-base leading-7 text-white/82">
+                  Shared runtime state tracks wheel zoom, cursor position, and WASD input once.
+                  OrbitControls step in only when the repo graduates from shader studies to real 3D
+                  camera movement.
+                </p>
+              </div>
+
+              <div class="rounded-[1.5rem] border border-white/10 bg-black/26 p-4">
+                <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">Endgame</p>
+                <p class="mt-3 text-base leading-7 text-white/82">
+                  <span class="font-mono text-[color:var(--page-coral)]"
+                    >shader_cube_menger_dda</span
+                  >
+                  is the destination: a recursive Menger sponge traversal that uses distance-aware
+                  stepping and jumps straight through empty blocks instead of touching every cell.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="what" class="mt-24">
+          <div class="max-w-3xl">
+            <span class="eyebrow font-mono">What this repo is actually doing</span>
+            <h2
+              class="mt-6 text-[clamp(2.4rem,5vw,4.5rem)] font-bold tracking-[-0.05em] text-white"
+            >
+              Raw WebGL for the render path, small doses of Three.js for camera ergonomics, and a
+              lot of fractal abuse in fragment shaders.
+            </h2>
+          </div>
+
+          <div class="mt-10 grid gap-5 lg:grid-cols-2">
+            <article class="scene-card">
+              <p
+                class="font-mono text-xs uppercase tracking-[0.28em] text-[color:var(--page-cyan)]"
+              >
+                01. Foundations
+              </p>
+              <h3 class="mt-3 text-2xl font-semibold text-white">
+                The repo teaches itself from first principles.
+              </h3>
+              <p class="mt-4 leading-7 text-white/68">
+                The early scenes are intentionally bare: one triangle, then a plane, then fullscreen
+                shader work. That makes the later fractal logic feel earned instead of magic.
+              </p>
+            </article>
+
+            <article class="scene-card">
+              <p
+                class="font-mono text-xs uppercase tracking-[0.28em] text-[color:var(--page-coral)]"
+              >
+                02. Fractal study
+              </p>
+              <h3 class="mt-3 text-2xl font-semibold text-white">
+                The Menger logic starts in 2D and stays analytic.
+              </h3>
+              <p class="mt-4 leading-7 text-white/68">
+                Pixels are classified by repeated base-3 subdivision, not by looking up baked data.
+                The zoom scene keeps the cursor’s target centered while you dive deeper into the
+                pattern.
+              </p>
+            </article>
+
+            <article class="scene-card">
+              <p
+                class="font-mono text-xs uppercase tracking-[0.28em] text-[color:var(--page-lime)]"
+              >
+                03. Camera experiments
+              </p>
+              <h3 class="mt-3 text-2xl font-semibold text-white">
+                Cross-sections and cubes are camera-space prototypes.
+              </h3>
+              <p class="mt-4 leading-7 text-white/68">
+                Before the final sponge, the repo spends time on ray hits, plane slices, box faces,
+                and camera transforms so the 3D renderer has a real foundation.
+              </p>
+            </article>
+
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/56">
+                04. Final pass
+              </p>
+              <h3 class="mt-3 text-2xl font-semibold text-white">
+                The destination scene skips voids instead of brute forcing voxels.
+              </h3>
+              <p class="mt-4 leading-7 text-white/68">
+                The DDA scene treats the sponge as recursive empty space. Level-of-detail scaling
+                and empty-block exits let the shader move fast where there is nothing to hit.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="controls" class="mt-24">
+          <div class="max-w-3xl">
+            <span class="eyebrow font-mono">Controls</span>
+            <h2 class="mt-6 text-[clamp(2.2rem,4vw,4rem)] font-bold tracking-[-0.05em] text-white">
+              Scene 9: Menger sponge
+            </h2>
+            <p class="mt-4 text-lg leading-7 text-white/68 sm:text-xl">
+              Use the controls below to inspect the final DDA renderer without losing your bearings.
+            </p>
+          </div>
+
+          <div class="mt-10 grid gap-4 md:grid-cols-3">
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">Scroll</p>
+              <h3 class="mt-3 text-2xl font-semibold text-white">Zoom in / out</h3>
+              <p class="mt-4 leading-7 text-white/68">
+                Roll the wheel to move deeper into the sponge or pull back for context.
+              </p>
+            </article>
+
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">Left click</p>
+              <h3 class="mt-3 text-2xl font-semibold text-white">Rotate</h3>
+              <p class="mt-4 leading-7 text-white/68">
+                Drag to orbit the camera around the structure and reveal new faces.
+              </p>
+            </article>
+
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">Right click</p>
+              <h3 class="mt-3 text-2xl font-semibold text-white">Pan</h3>
+              <p class="mt-4 leading-7 text-white/68">
+                Drag to slide the view and keep your focus centered on details.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="scene-ladder" class="mt-24">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div class="max-w-3xl">
+              <span class="eyebrow font-mono">Scene ladder</span>
+              <h2
+                class="mt-6 text-[clamp(2.2rem,4vw,4rem)] font-bold tracking-[-0.05em] text-white"
+              >
+                Nine scenes, each one pushing the shader stack a little harder.
+              </h2>
+            </div>
+            <p class="max-w-xl text-sm leading-7 text-white/60">
+              The GUI scene picker makes this repo feel like a lab notebook you can scrub through.
+              It remembers your last scene, so the current target is always one click away.
+            </p>
+          </div>
+
+          <div class="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">01 / simple</p>
+              <h3 class="mt-3 text-xl font-semibold text-white">Smoke test triangle</h3>
+              <p class="mt-3 text-sm leading-7 text-white/64">
+                Just enough raw WebGL to prove the pipeline, attributes, and fragment output are
+                wired correctly.
+              </p>
+            </article>
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">02 / plane</p>
+              <h3 class="mt-3 text-xl font-semibold text-white">Pixel-space bridge scene</h3>
+              <p class="mt-3 text-sm leading-7 text-white/64">
+                Moves toward fullscreen work with a resolution uniform and plane-sized coordinates.
+              </p>
+            </article>
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">
+                03 / menger_sponge
+              </p>
+              <h3 class="mt-3 text-xl font-semibold text-white">Base-3 fractal carveout</h3>
+              <p class="mt-3 text-sm leading-7 text-white/64">
+                A 2D Menger-style study that snaps resolution to powers of three so the recursion
+                stays clean.
+              </p>
+            </article>
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">
+                04 / menger_sponge_zoom
+              </p>
+              <h3 class="mt-3 text-xl font-semibold text-white">Cursor-centered zoom probe</h3>
+              <p class="mt-3 text-sm leading-7 text-white/64">
+                Turns the fractal into an exploration tool instead of a static postcard.
+              </p>
+            </article>
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">
+                05 / shader_cross_section
+              </p>
+              <h3 class="mt-3 text-xl font-semibold text-white">Ray-plane slice prototype</h3>
+              <p class="mt-3 text-sm leading-7 text-white/64">
+                Builds camera orientation in shader space and intersects rays with bounded planes.
+              </p>
+            </article>
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">
+                06 / shader_cube
+              </p>
+              <h3 class="mt-3 text-xl font-semibold text-white">Box-face hit testing</h3>
+              <p class="mt-3 text-sm leading-7 text-white/64">
+                Generalizes the slice work into orthogonal cube-face intersections and face
+                coloring.
+              </p>
+            </article>
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">
+                07 / shader_cube_animated
+              </p>
+              <h3 class="mt-3 text-xl font-semibold text-white">Motion and camera orbit</h3>
+              <p class="mt-3 text-sm leading-7 text-white/64">
+                Adds animated surface treatment while wheel input rotates the view around the
+                object.
+              </p>
+            </article>
+            <article class="scene-card">
+              <p class="font-mono text-xs uppercase tracking-[0.28em] text-white/42">
+                08 / shader_cube_camera
+              </p>
+              <h3 class="mt-3 text-xl font-semibold text-white">Three.js camera handoff</h3>
+              <p class="mt-3 text-sm leading-7 text-white/64">
+                OrbitControls and a PerspectiveCamera feed a rotation matrix into the shader
+                pipeline.
+              </p>
+            </article>
+            <article
+              class="scene-card border-[color:var(--page-lime)]/30 bg-[linear-gradient(180deg,rgba(213,255,90,0.08),rgba(0,0,0,0.22))]"
+            >
+              <p
+                class="font-mono text-xs uppercase tracking-[0.28em] text-[color:var(--page-lime)]"
+              >
+                09 / shader_cube_menger_dda
+              </p>
+              <h3 class="mt-3 text-xl font-semibold text-white">The 3D Menger sponge payoff</h3>
+              <p class="mt-3 text-sm leading-7 text-white/72">
+                A giant recursive cube, a shader-side camera, distance-aware stepping, and
+                empty-space skipping that makes the whole repo worth opening.
+              </p>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
   </body>
 </html>
